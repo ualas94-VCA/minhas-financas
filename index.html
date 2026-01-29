@@ -1,1 +1,235 @@
-a
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patrimônio H1a.17 - v3.0</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --info: #3498db; --danger: #e74c3c; --bg: #f4f7f6; --gold: #f1c40f; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* Menu de Abas */
+        .nav-tabs { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
+        .tab-btn.active { background: var(--info); color: white; }
+
+        /* Cards de Resumo Responsivos */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .card { padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: center; font-size: 0.9em; }
+        .card div { font-size: 1.2em; font-weight: bold; margin-top: 5px; }
+        .card.green { background: var(--success); }
+        .card.gold { background: var(--gold); color: #2c3e50; }
+
+        /* Tabela Responsiva */
+        .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: var(--primary); color: white; padding: 12px; font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 13px; }
+        
+        /* Controles */
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: space-between; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 12px; }
+        .btn-save { background: var(--success); }
+        .btn-export { background: var(--primary); }
+        .btn-import { background: var(--info); }
+        
+        input[type="number"], input[type="date"] { padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 85px; }
+        .amortizada-fim { background-color: #fcf8e3 !important; color: #8a6d3b; font-style: italic; }
+        .badge-desc { background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; display: block; }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.2em; }
+            .card { padding: 10px; }
+            .card div { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="margin:0;">Finanças <span style="color:var(--info)">H1a.17</span></h1>
+        <small>v3.0 Cloud-Ready</small>
+    </header>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active">Loteamento</button>
+        <button class="tab-btn" onclick="alert('Aba Bitcoin em breve!')">Bitcoin</button>
+        <button class="tab-btn" onclick="alert('Aba Solar em breve!')">Energia Solar</button>
+        <button class="tab-btn" onclick="alert('Aba Metas em breve!')">Metas</button>
+    </div>
+
+    <div class="stats">
+        <div class="card">Dívida Atual: <div id="resumo-saldo">R$ 0,00</div></div>
+        <div class="card green">Lucro IPCA: <div id="resumo-economia">R$ 0,00</div></div>
+        <div class="card gold">Lucro Amort.: <div id="resumo-amortizacao">R$ 0,00</div></div>
+        <div class="card" style="background: var(--info)">Restam: <div id="resumo-restantes">0</div></div>
+    </div>
+
+    <div class="controls">
+        <div>
+            <button class="btn btn-save" onclick="salvarDados()">SALVAR LOCAL</button>
+            <button class="btn btn-export" onclick="exportarJSON()">EXPORTAR BACKUP</button>
+            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">IMPORTAR</button>
+            <input type="file" id="importFile" style="display:none" onchange="importarJSON(this)">
+        </div>
+        <button class="btn" style="background:var(--danger)" onclick="resetar()">LIMPAR</button>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>Vencimento</th>
+                    <th>Vl. Base</th>
+                    <th>Data Pagto</th>
+                    <th>Amortizar</th>
+                    <th>Pago?</th>
+                    <th>Custo Líquido</th>
+                    <th>Status/Economia</th>
+                    <th>Saldo Restante</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const SALDO_INICIAL = 138264.72;
+    const IPCA_MENSAL = 0.0028;
+    const DATA_BASE = new Date(2024, 10, 25);
+
+    let dadosUsuario = JSON.parse(localStorage.getItem('financas_v30')) || {};
+
+    function getValorSugerido(p) {
+        if (p <= 15) return 393.56;
+        if (p <= 27) return 448.11;
+        return 1315.16;
+    }
+
+    function renderizar() {
+        const corpo = document.getElementById('tabela-corpo');
+        corpo.innerHTML = '';
+        let saldoAcumulado = SALDO_INICIAL;
+        let totalIPCA = 0;
+        let totalAmort = 0;
+        let pagasMensais = 0;
+
+        let pool = [];
+        for (let i = 1; i <= 180; i++) {
+            let chave = `p_${i}`;
+            if (!dadosUsuario[chave]) {
+                let vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
+                if (i <= 15) {
+                    dadosUsuario[chave] = { 
+                        data: vcto.toISOString().split('T')[0], 
+                        pago: true, valor: getValorSugerido(i), 
+                        amort: (i === 11 || i === 13) ? 2125.26 : 0 
+                    };
+                }
+            }
+            let d = dadosUsuario[chave] || { valor: getValorSugerido(i), amort: 0, pago: false, data: "" };
+            if (d.pago) {
+                pagasMensais++;
+                let extra = parseFloat(d.amort) || 0;
+                if (extra > 0) {
+                    let custoUni = (i <= 15) ? 354.21 : parseFloat(d.valor);
+                    pool.push({ valor: extra, custo: custoUni, origem: i });
+                }
+            }
+        }
+
+        let quitadasFim = [];
+        pool.forEach(item => {
+            let sobra = item.valor;
+            for (let j = 180; j >= 1; j--) {
+                if (!quitadasFim[j] && sobra >= item.custo) {
+                    let vOrig = getValorSugerido(j);
+                    totalAmort += (vOrig - item.custo);
+                    quitadasFim[j] = { origem: item.origem, econ: (vOrig - item.custo), custo: item.custo };
+                    sobra -= item.custo;
+                }
+            }
+        });
+
+        for (let i = 1; i <= 180; i++) {
+            const vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
+            let d = dadosUsuario[`p_${i}`] || { valor: getValorSugerido(i), amort: 0, pago: false, data: "" };
+            let amortizada = quitadasFim[i];
+            let correcao = (i >= 16 && !amortizada) ? saldoAcumulado * IPCA_MENSAL : 0;
+            let saldoComCorrecao = saldoAcumulado + correcao;
+            let custoLiq = 0; let econIPCA = 0;
+
+            if (d.pago) {
+                let dPagto = new Date(d.data);
+                if (dPagto <= vcto || i < 16) {
+                    custoLiq = parseFloat(d.valor); econIPCA = correcao; totalIPCA += correcao; saldoComCorrecao = saldoAcumulado;
+                } else { custoLiq = parseFloat(d.valor) + correcao; }
+            }
+
+            let saida = d.pago ? (parseFloat(d.valor) + (parseFloat(d.amort) || 0)) : 0;
+            if (amortizada) { saida = 0; custoLiq = 0; }
+            saldoAcumulado = saldoComCorrecao - saida;
+            if (saldoAcumulado < 0) saldoAcumulado = 0;
+
+            const tr = document.createElement('tr');
+            if (d.pago) tr.className = 'pago';
+            if (amortizada) tr.className = 'amortizada-fim';
+
+            tr.innerHTML = `
+                <td>${i}</td>
+                <td>${vcto.toLocaleDateString('pt-BR')}</td>
+                <td>R$ ${parseFloat(d.valor).toFixed(2)}</td>
+                <td><input type="date" id="date_${i}" value="${d.data}" onchange="atualizar(${i})"></td>
+                <td>R$ <input type="number" step="0.01" id="amort_${i}" value="${d.amort}" onchange="atualizar(${i})"></td>
+                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onclick="atualizar(${i})"></td>
+                <td><b>R$ ${custoLiq.toFixed(2)}</b></td>
+                <td>
+                    ${amortizada ? '<b>PAGO NA P' + amortizada.origem + '</b>' : ''}
+                    ${amortizada ? '<span class="badge-amort" style="color:#8a6d3b">LUCRO: R$ ' + amortizada.econ.toFixed(2) + '</span>' : ''}
+                    ${econIPCA > 0 ? '<span class="badge-desc">ECON. IPCA: R$ ' + econIPCA.toFixed(2) + '</span>' : ''}
+                </td>
+                <td><b>R$ ${saldoAcumulado.toLocaleString('pt-BR', {minimumFractionDigits:2})}</b></td>
+            `;
+            corpo.appendChild(tr);
+        }
+        document.getElementById('resumo-saldo').innerText = `R$ ${saldoAcumulado.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        document.getElementById('resumo-economia').innerText = `R$ ${totalIPCA.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        document.getElementById('resumo-amortizacao').innerText = `R$ ${totalAmort.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        document.getElementById('resumo-restantes').innerText = 180 - pagasMensais - Object.keys(quitadasFim).length;
+    }
+
+    function atualizar(i) {
+        dadosUsuario[`p_${i}`] = { valor: getValorSugerido(i), data: document.getElementById(`date_${i}`).value, amort: document.getElementById(`amort_${i}`).value, pago: document.getElementById(`check_${i}`).checked };
+        renderizar();
+    }
+
+    function exportarJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dadosUsuario));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "financas_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importarJSON(input) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            dadosUsuario = JSON.parse(reader.result);
+            renderizar();
+            alert('Dados importados com sucesso! Não esqueça de Salvar Local.');
+        };
+        reader.readAsText(input.files[0]);
+    }
+
+    function salvarDados() { localStorage.setItem('financas_v30', JSON.stringify(dadosUsuario)); alert('Salvo no dispositivo!'); }
+    function resetar() { if(confirm("Limpar tudo?")) { localStorage.removeItem('financas_v30'); location.reload(); } }
+    renderizar();
+</script>
+</body>
+</html>
