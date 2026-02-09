@@ -3,93 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patrimônio H1a.17 - v3.0</title>
+    <title>Patrimônio H1a.17 - v3.1 Cloud</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #2c3e50; --success: #27ae60; --info: #3498db; --danger: #e74c3c; --bg: #f4f7f6; --gold: #f1c40f; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* Menu de Abas */
-        .nav-tabs { display: flex; overflow-x: auto; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .tab-btn { padding: 10px 20px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; }
         .tab-btn.active { background: var(--info); color: white; }
-
-        /* Cards de Resumo Responsivos */
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .card { padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: center; font-size: 0.9em; }
+        .card { padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: center; }
         .card div { font-size: 1.2em; font-weight: bold; margin-top: 5px; }
         .card.green { background: var(--success); }
         .card.gold { background: var(--gold); color: #2c3e50; }
-
-        /* Tabela Responsiva */
-        .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { background: var(--primary); color: white; padding: 12px; font-size: 11px; text-transform: uppercase; }
+        .table-wrapper { overflow-x: auto; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { background: var(--primary); color: white; padding: 12px; font-size: 11px; }
         td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 13px; }
-        
-        /* Controles */
-        .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: space-between; }
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 12px; }
-        .btn-save { background: var(--success); }
-        .btn-export { background: var(--primary); }
-        .btn-import { background: var(--info); }
-        
-        input[type="number"], input[type="date"] { padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 85px; }
+        input { padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 85px; }
+        .pago { background-color: #d4edda !important; }
         .amortizada-fim { background-color: #fcf8e3 !important; color: #8a6d3b; font-style: italic; }
-        .badge-desc { background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; display: block; }
-
-        @media (max-width: 600px) {
-            h1 { font-size: 1.2em; }
-            .card { padding: 10px; }
-            .card div { font-size: 1em; }
-        }
+        .badge-desc { background: var(--success); color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin:0;">Finanças <span style="color:var(--info)">H1a.17</span></h1>
-        <small>v3.0 Cloud-Ready</small>
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h1>Finanças <span style="color:var(--info)">H1a.17</span></h1>
+        <div id="status-cloud" style="font-size: 0.8em; color: var(--success);">● Conectado ao Supabase</div>
     </header>
 
     <div class="nav-tabs">
         <button class="tab-btn active">Loteamento</button>
-        <button class="tab-btn" onclick="alert('Aba Bitcoin em breve!')">Bitcoin</button>
-        <button class="tab-btn" onclick="alert('Aba Solar em breve!')">Energia Solar</button>
-        <button class="tab-btn" onclick="alert('Aba Metas em breve!')">Metas</button>
+        <button class="tab-btn">Bitcoin</button>
+        <button class="tab-btn">Solar</button>
     </div>
 
     <div class="stats">
-        <div class="card">Dívida Atual: <div id="resumo-saldo">R$ 0,00</div></div>
-        <div class="card green">Lucro IPCA: <div id="resumo-economia">R$ 0,00</div></div>
-        <div class="card gold">Lucro Amort.: <div id="resumo-amortizacao">R$ 0,00</div></div>
-        <div class="card" style="background: var(--info)">Restam: <div id="resumo-restantes">0</div></div>
-    </div>
-
-    <div class="controls">
-        <div>
-            <button class="btn btn-save" onclick="salvarDados()">SALVAR LOCAL</button>
-            <button class="btn btn-export" onclick="exportarJSON()">EXPORTAR BACKUP</button>
-            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">IMPORTAR</button>
-            <input type="file" id="importFile" style="display:none" onchange="importarJSON(this)">
-        </div>
-        <button class="btn" style="background:var(--danger)" onclick="resetar()">LIMPAR</button>
+        <div class="card">Dívida: <div id="resumo-saldo">R$ 0,00</div></div>
+        <div class="card green">Econ. IPCA: <div id="resumo-economia">R$ 0,00</div></div>
+        <div class="card gold">Econ. Amort.: <div id="resumo-amortizacao">R$ 0,00</div></div>
+        <div class="card" style="background: var(--info)">Restantes: <div id="resumo-restantes">0</div></div>
     </div>
 
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>Nº</th>
-                    <th>Vencimento</th>
-                    <th>Vl. Base</th>
-                    <th>Data Pagto</th>
-                    <th>Amortizar</th>
-                    <th>Pago?</th>
-                    <th>Custo Líquido</th>
-                    <th>Status/Economia</th>
-                    <th>Saldo Restante</th>
+                    <th>Nº</th><th>Vencimento</th><th>Vl. Base</th><th>Data Pagto</th><th>Amortizar</th><th>Pago?</th><th>Custo Líq.</th><th>Status</th><th>Saldo</th>
                 </tr>
             </thead>
             <tbody id="tabela-corpo"></tbody>
@@ -98,11 +61,14 @@
 </div>
 
 <script>
+    const SUPABASE_URL = 'https://rcntxxttlwcvcbiexgkk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjbnR4eHR0bHdjdmNiaWV4Z2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MjMyMzksImV4cCI6MjA4NTA5OTIzOX0.dapH3LiZSft8P_i7nyVE4gIdNl5EgAglaZqfK_tbjGU';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const SALDO_INICIAL = 138264.72;
     const IPCA_MENSAL = 0.0028;
     const DATA_BASE = new Date(2024, 10, 25);
-
-    let dadosUsuario = JSON.parse(localStorage.getItem('financas_v30')) || {};
+    let dadosNuvem = {};
 
     function getValorSugerido(p) {
         if (p <= 15) return 393.56;
@@ -110,35 +76,34 @@
         return 1315.16;
     }
 
+    async function carregarDados() {
+        const { data, error } = await supabase.from('parcelas_lote').select('*');
+        if (data) {
+            data.forEach(item => { dadosNuvem[`p_${item.id}`] = { data: item.data_pagto, amort: item.amort_extra, pago: item.pago }; });
+            renderizar();
+        }
+    }
+
+    async function atualizarNuvem(i, data, amort, pago) {
+        const { error } = await supabase.from('parcelas_lote').upsert({ 
+            id: i, data_pagto: data, amort_extra: amort, pago: pago 
+        });
+        if (!error) carregarDados();
+    }
+
     function renderizar() {
         const corpo = document.getElementById('tabela-corpo');
         corpo.innerHTML = '';
         let saldoAcumulado = SALDO_INICIAL;
-        let totalIPCA = 0;
-        let totalAmort = 0;
-        let pagasMensais = 0;
-
+        let totalIPCA = 0; let totalAmort = 0; let pagasCount = 0;
         let pool = [];
+
         for (let i = 1; i <= 180; i++) {
-            let chave = `p_${i}`;
-            if (!dadosUsuario[chave]) {
-                let vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
-                if (i <= 15) {
-                    dadosUsuario[chave] = { 
-                        data: vcto.toISOString().split('T')[0], 
-                        pago: true, valor: getValorSugerido(i), 
-                        amort: (i === 11 || i === 13) ? 2125.26 : 0 
-                    };
-                }
-            }
-            let d = dadosUsuario[chave] || { valor: getValorSugerido(i), amort: 0, pago: false, data: "" };
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
             if (d.pago) {
-                pagasMensais++;
+                pagasCount++;
                 let extra = parseFloat(d.amort) || 0;
-                if (extra > 0) {
-                    let custoUni = (i <= 15) ? 354.21 : parseFloat(d.valor);
-                    pool.push({ valor: extra, custo: custoUni, origem: i });
-                }
+                if (extra > 0) pool.push({ valor: extra, custo: (i <= 15 ? 354.21 : getValorSugerido(i)), origem: i });
             }
         }
 
@@ -147,9 +112,8 @@
             let sobra = item.valor;
             for (let j = 180; j >= 1; j--) {
                 if (!quitadasFim[j] && sobra >= item.custo) {
-                    let vOrig = getValorSugerido(j);
-                    totalAmort += (vOrig - item.custo);
-                    quitadasFim[j] = { origem: item.origem, econ: (vOrig - item.custo), custo: item.custo };
+                    totalAmort += (getValorSugerido(j) - item.custo);
+                    quitadasFim[j] = { origem: item.origem, econ: (getValorSugerido(j) - item.custo) };
                     sobra -= item.custo;
                 }
             }
@@ -157,7 +121,7 @@
 
         for (let i = 1; i <= 180; i++) {
             const vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
-            let d = dadosUsuario[`p_${i}`] || { valor: getValorSugerido(i), amort: 0, pago: false, data: "" };
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
             let amortizada = quitadasFim[i];
             let correcao = (i >= 16 && !amortizada) ? saldoAcumulado * IPCA_MENSAL : 0;
             let saldoComCorrecao = saldoAcumulado + correcao;
@@ -166,11 +130,11 @@
             if (d.pago) {
                 let dPagto = new Date(d.data);
                 if (dPagto <= vcto || i < 16) {
-                    custoLiq = parseFloat(d.valor); econIPCA = correcao; totalIPCA += correcao; saldoComCorrecao = saldoAcumulado;
-                } else { custoLiq = parseFloat(d.valor) + correcao; }
+                    custoLiq = getValorSugerido(i); econIPCA = correcao; totalIPCA += correcao; saldoComCorrecao = saldoAcumulado;
+                } else { custoLiq = getValorSugerido(i) + correcao; }
             }
 
-            let saida = d.pago ? (parseFloat(d.valor) + (parseFloat(d.amort) || 0)) : 0;
+            let saida = d.pago ? (getValorSugerido(i) + (parseFloat(d.amort) || 0)) : 0;
             if (amortizada) { saida = 0; custoLiq = 0; }
             saldoAcumulado = saldoComCorrecao - saida;
             if (saldoAcumulado < 0) saldoAcumulado = 0;
@@ -182,16 +146,12 @@
             tr.innerHTML = `
                 <td>${i}</td>
                 <td>${vcto.toLocaleDateString('pt-BR')}</td>
-                <td>R$ ${parseFloat(d.valor).toFixed(2)}</td>
-                <td><input type="date" id="date_${i}" value="${d.data}" onchange="atualizar(${i})"></td>
-                <td>R$ <input type="number" step="0.01" id="amort_${i}" value="${d.amort}" onchange="atualizar(${i})"></td>
-                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onclick="atualizar(${i})"></td>
+                <td>R$ ${getValorSugerido(i).toFixed(2)}</td>
+                <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvar(${i})"></td>
+                <td>R$ <input type="number" step="0.01" id="amort_${i}" value="${d.amort}" onchange="salvar(${i})"></td>
+                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onclick="salvar(${i})"></td>
                 <td><b>R$ ${custoLiq.toFixed(2)}</b></td>
-                <td>
-                    ${amortizada ? '<b>PAGO NA P' + amortizada.origem + '</b>' : ''}
-                    ${amortizada ? '<span class="badge-amort" style="color:#8a6d3b">LUCRO: R$ ' + amortizada.econ.toFixed(2) + '</span>' : ''}
-                    ${econIPCA > 0 ? '<span class="badge-desc">ECON. IPCA: R$ ' + econIPCA.toFixed(2) + '</span>' : ''}
-                </td>
+                <td>${amortizada ? 'P1'+amortizada.origem : (econIPCA > 0 ? 'ECON. IPCA' : 'OK')}</td>
                 <td><b>R$ ${saldoAcumulado.toLocaleString('pt-BR', {minimumFractionDigits:2})}</b></td>
             `;
             corpo.appendChild(tr);
@@ -199,37 +159,19 @@
         document.getElementById('resumo-saldo').innerText = `R$ ${saldoAcumulado.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
         document.getElementById('resumo-economia').innerText = `R$ ${totalIPCA.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
         document.getElementById('resumo-amortizacao').innerText = `R$ ${totalAmort.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-        document.getElementById('resumo-restantes').innerText = 180 - pagasMensais - Object.keys(quitadasFim).length;
+        document.getElementById('resumo-restantes').innerText = 180 - pagasCount - Object.keys(quitadasFim).length;
     }
 
-    function atualizar(i) {
-        dadosUsuario[`p_${i}`] = { valor: getValorSugerido(i), data: document.getElementById(`date_${i}`).value, amort: document.getElementById(`amort_${i}`).value, pago: document.getElementById(`check_${i}`).checked };
-        renderizar();
+    function salvar(i) {
+        const data = document.getElementById(`date_${i}`).value;
+        const amort = document.getElementById(`amort_${i}`).value;
+        const pago = document.getElementById(`check_${i}`).checked;
+        atualizarNuvem(i, data, amort, pago);
     }
 
-    function exportarJSON() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dadosUsuario));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "financas_backup.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-    }
-
-    function importarJSON(input) {
-        const reader = new FileReader();
-        reader.onload = function() {
-            dadosUsuario = JSON.parse(reader.result);
-            renderizar();
-            alert('Dados importados com sucesso! Não esqueça de Salvar Local.');
-        };
-        reader.readAsText(input.files[0]);
-    }
-
-    function salvarDados() { localStorage.setItem('financas_v30', JSON.stringify(dadosUsuario)); alert('Salvo no dispositivo!'); }
-    function resetar() { if(confirm("Limpar tudo?")) { localStorage.removeItem('financas_v30'); location.reload(); } }
-    renderizar();
+    carregarDados();
+    // Escuta mudanças em tempo real para sincronizar com a esposa
+    supabase.channel('custom-all-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'parcelas_lote' }, () => { carregarDados(); }).subscribe();
 </script>
 </body>
 </html>
