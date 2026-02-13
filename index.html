@@ -244,7 +244,33 @@
         document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
         document.getElementById('res-amort').innerText = fMoeda(econAmort);
         document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
+        
     }
+     async function carregarTudo() {
+        // 1. Busca as configurações de valores base
+        const { data: cfg } = await supabaseClient.from('config_parcelas').select('*').order('de_parcela');
+        if (cfg) { 
+            configParcelas = cfg; 
+            renderizarConfig(); 
+        }
+        
+        // 2. Busca os pagamentos e amortizações
+        const { data: p } = await supabaseClient.from('parcelas_lote').select('*');
+        if (p) {
+            dadosNuvem = {}; 
+            p.forEach(item => { 
+                dadosNuvem[`p_${item.id}`] = { 
+                    data: item.data_pagto, 
+                    amort: item.amort_extra, 
+                    pago: item.pago 
+                }; 
+            });
+            renderizar(); 
+        }
+    }
+
+    // Chamada inicial para o sistema rodar ao abrir
+    carregarTudo();
 </script>
 </body>
 </html>
