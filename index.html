@@ -205,23 +205,22 @@
             let custoReal = valorBaseOriginal;
 
             if (d.pago) {
-                // Força o fuso horário correto para comparação
+                // Cria as datas de forma estável
                 let dataPagamento = new Date(d.data + "T00:00:00");
                 let dataVencimento = new Date(vcto);
                 dataVencimento.setHours(0,0,0,0);
                 
-                // Regra estrita: Desconto apenas se for pago ATÉ o dia do vencimento
-                if (dataPagamento <= dataVencimento || i < 16) { 
+                // COMPARAÇÃO NUMÉRICA (Garante precisão total)
+                const pagoNoPrazo = dataPagamento.getTime() <= dataVencimento.getTime();
+
+                if (pagoNoPrazo || i < 16) { 
                     custoReal = valorComDesconto;
                     econIPCA += (saldoExibicao * IPCA_MENSAL); 
                 } else { 
-                    // Perda do desconto por atraso (Ex: Parcela 2 paga dia 26)
+                    // Se caiu aqui, é porque pagou após o vencimento (Ex: dia 26)
                     custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
                 }
                 saldoExibicao -= valorBaseOriginal;
-            } else if (amortizada) {
-                saldoExibicao -= valorBaseOriginal;
-                custoReal = 0;
             }
 
             const tr = document.createElement('tr');
