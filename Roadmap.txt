@@ -1,0 +1,48 @@
+🗺️ Roadmap do Projeto: Minhas Finanças (v4.0)
+🟩 Fase 1: Finalização do Loteamento (O que temos agora)
+[x] Interface: Modo Dark e layout responsivo.
+
+[x] Banco de Dados: Integração com Supabase (Configuração e Parcelas).
+
+[x] Lógica: Amortização automática do final para o início.
+
+[x] Ajuste Fino: Formatação de moeda brasileira (R$) e edição de cronograma.
+
+[ ] Pendente: Reativar o cálculo automático de 10% de desconto por pontualidade.
+
+[ ] Pendente: Gráfico de evolução da dívida (Visualizar a queda do saldo devedor).
+
+🟧 Fase 2: Navegação e Dashboard Principal
+[ ] Menu Global: Criar abas no topo (Loteamento | Bitcoin | Energia Solar | Investimentos).
+
+[ ] Cards Resumo: Um painel inicial que mostra o Patrimônio Total (Soma de BTC + Saldo Solar - Dívida do Lote).
+
+[ ] Sistema de Login: Proteção simples para que apenas você acesse seus dados.
+
+🟦 Fase 3: Módulo Bitcoin (Próximo Passo)
+[ ] Integração de API: Buscar o preço do BTC/BRL em tempo real (via CoinGecko ou similar).
+
+[ ] Gestão de Saldo: Campo para inserir seu saldo em BTC ou Satoshis.
+
+[ ] Cálculo de Lucro: Registro de "Preço Médio" para saber quanto você já ganhou com a valorização.
+
+[ ] Conversão Automática: Mostrar o saldo sempre atualizado em Reais (R$).
+
+🟨 Fase 4: Módulo Energia Solar (Monitoramento)
+[ ] Painel de Geração: Espaço para inserir a geração mensal dos seus 4 painéis de 620 kWp.
+
+[ ] Economia Acumulada: Calcular quanto de conta de luz você deixou de pagar desde o investimento inicial de R$ 6.100.
+
+[ ] ROI (Retorno): Contador de quanto tempo falta para o sistema se "pagar" totalmente.
+
+🟪 Fase 5: Integração ERP Sys-Ala (Avançado)
+[ ] Relatórios
+
+🚀 O que falta "voltar" para o sistema agora?
+Para não esquecermos nada das nossas conversas anteriores:
+
+A Amortização Inteligente: Garantir que quando você digitar um valor no "Amort. Extra", o sistema mostre exatamente quais parcelas do fim foram quitadas (já estamos quase lá).
+
+A Amortização de Prazo vs. Valor: Lembra que discutimos se valia a pena reduzir o valor da parcela ou o tempo? Podemos criar um simulador para isso.
+
+Logs de Segurança: Como você está usando o Supabase, podemos registrar a data da última alteração de cada parcela.
