@@ -79,18 +79,29 @@
         }
     }
 
+    function formatarParaInput(valor) {
+        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     function renderizarConfig() {
         const container = document.getElementById('configRows');
         container.innerHTML = configParcelas.map((c, idx) => `
             <div class="config-row">
-                De: <input type="number" style="width:60px" value="${c.de_parcela}" onchange="updateConfig(${idx},'de_parcela',this.value)">
-                Até: <input type="number" style="width:60px" value="${c.ate_parcela}" onchange="updateConfig(${idx},'ate_parcela',this.value)">
-                Valor: <input type="text" style="width:100px" value="${c.valor_base}" onchange="updateConfig(${idx},'valor_base',this.value)">
-                <button onclick="removerLinha(${idx})" style="color:#ef4444; background:none; border:none; cursor:pointer">✖</button>
+                De: <input type="number" style="width:65px" value="${c.de_parcela}" onchange="updateConfig(${idx},'de_parcela',this.value)">
+                Até: <input type="number" style="width:65px" value="${c.ate_parcela}" onchange="updateConfig(${idx},'ate_parcela',this.value)">
+                Valor R$: <input type="text" style="width:110px" class="money" value="${formatarParaInput(c.valor_base)}" onblur="updateConfig(${idx},'valor_base',this.value)">
+                <button onclick="removerLinha(${idx})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-weight:bold">✖</button>
             </div>`).join('');
     }
 
-    function updateConfig(i, f, v) { configParcelas[i][f] = parseMoeda(v); }
+    function updateConfig(i, f, v) { 
+        // Se for o campo de valor, usa o parseMoeda para entender a vírgula brasileira
+        if (f === 'valor_base') {
+            configParcelas[i][f] = parseMoeda(v);
+        } else {
+            configParcelas[i][f] = parseInt(v); 
+        }
+    }
 
     function adicionarLinhaConfig() {
         const last = configParcelas.length > 0 ? configParcelas[configParcelas.length-1].ate_parcela : 0;
