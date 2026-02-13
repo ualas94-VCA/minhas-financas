@@ -205,16 +205,19 @@
             let custoReal = valorBaseOriginal;
 
             if (d.pago) {
-                let dp = new Date(d.data + "T00:00:00");
+                // Força o fuso horário correto para comparação
+                let dataPagamento = new Date(d.data + "T00:00:00");
+                let dataVencimento = new Date(vcto);
+                dataVencimento.setHours(0,0,0,0);
                 
-                // Se pagou em dia (ou parcelas fixas 1-15), aplica 10% de desconto
-                if (dp <= vcto || i < 16) { 
+                // Regra estrita: Desconto apenas se for pago ATÉ o dia do vencimento
+                if (dataPagamento <= dataVencimento || i < 16) { 
                     custoReal = valorComDesconto;
                     econIPCA += (saldoExibicao * IPCA_MENSAL); 
                 } else { 
+                    // Perda do desconto por atraso (Ex: Parcela 2 paga dia 26)
                     custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
                 }
-                // Abate o valor principal da dívida
                 saldoExibicao -= valorBaseOriginal;
             } else if (amortizada) {
                 saldoExibicao -= valorBaseOriginal;
