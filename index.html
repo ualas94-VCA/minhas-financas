@@ -140,65 +140,93 @@
         carregarTudo();
     }
 
-    function renderizar() {
-        const corpo = document.getElementById('tabela-corpo');
-        corpo.innerHTML = '';
-        let saldo = SALDO_INICIAL; let econIPCA = 0; let econAmort = 0; let pagas = 0;
-        let poolAmort = [];
+   function renderizar() {
+    const corpo = document.getElementById('tabela-corpo');
+    corpo.innerHTML = '';
+    
+    // O saldo agora começa com o valor principal e diminui com pagamentos
+    let saldoExibicao = SALDO_INICIAL; 
+    let econIPCA = 0; 
+    let econAmort = 0; 
+    let pagas = 0;
+    let poolAmort = [];
 
-        for (let i = 1; i <= 180; i++) {
-            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
-            if (d.pago) { pagas++; if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); }
+    // 1. Identificar pagamentos e coletar valores para o pool de amortização
+    for (let i = 1; i <= 180; i++) {
+        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
+        if (d.pago) { 
+            pagas++; 
+            if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); 
         }
-
-        let quitadasFim = [];
-        poolAmort.forEach(item => {
-            let sobra = item.valor;
-            for (let j = 180; j >= 1; j--) {
-                let custoJ = getValorBase(j);
-                if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
-                    econAmort += custoJ; quitadasFim[j] = { por: item.origem }; sobra -= custoJ;
-                }
-            }
-        });
-
-        for (let i = 1; i <= 180; i++) {
-            const vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
-            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
-            let amortizada = quitadasFim[i];
-            let juros = (i >= 16 && !amortizada && !d.pago) ? saldo * IPCA_MENSAL : 0;
-            let custoReal = getValorBase(i);
-            
-            if (d.pago) {
-                let dp = new Date(d.data + "T00:00:00");
-                if (dp <= vcto || i < 16) { econIPCA += (saldo * IPCA_MENSAL); juros = 0; }
-                else { custoReal += (saldo * IPCA_MENSAL); }
-            }
-
-            let saida = d.pago ? (getValorBase(i) + d.amort) : 0;
-            if (amortizada) { saida = 0; custoReal = 0; }
-            saldo = (saldo + juros) - saida;
-            if (saldo < 0) saldo = 0;
-
-            const tr = document.createElement('tr');
-            if (d.pago) tr.className = 'pago';
-            if (amortizada) tr.className = 'amortizada';
-
-            tr.innerHTML = `
-                <td>${i}</td><td>${vcto.toLocaleDateString('pt-BR')}</td><td>${fMoeda(getValorBase(i))}</td>
-                <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
-                <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
-                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
-                <td>${fMoeda(custoReal)}</td><td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
-                <td><b>${fMoeda(saldo)}</b></td>
-            `;
-            corpo.appendChild(tr);
-        }
-        document.getElementById('res-saldo').innerText = fMoeda(saldo);
-        document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
-        document.getElementById('res-amort').innerText = fMoeda(econAmort);
-        document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
     }
+
+    // 2. Lógica de Abatimento Automático (Amortização do final para o início)
+    let quitadasFim = [];
+    poolAmort.forEach(item => {
+        let sobra = item.valor;
+        for (let j = 180; j >= 1; j--) {
+            let custoJ = getValorBase(j);
+            // Se a parcela não está paga nem amortizada, e há saldo extra para quitar o valor base dela
+            if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
+                econAmort += custoJ;
+                quitadasFim[j] = { por: item.origem };
+                sobra -= custoJ;
+            }
+        }
+    });
+
+    // 3. Gerar as 180 linhas e calcular o Saldo Devedor Atual
+    for (let i = 1; i <= 180; i++) {
+        const vcto = new Date(DATA_BASE); 
+        vcto.setMonth(vcto.getMonth() + (i-1));
+        
+        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
+        let amortizada = quitadasFim[i];
+        let valorBaseOriginal = getValorBase(i);
+        
+        // Cálculo de Juros/IPCA (apenas informativo para custo real)
+        let jurosExibicao = (i >= 16 && !amortizada && !d.pago) ? saldoExibicao * IPCA_MENSAL : 0;
+        let custoReal = valorBaseOriginal;
+        
+        if (d.pago) {
+            let dp = new Date(d.data + "T00:00:00");
+            if (dp <= vcto || i < 16) { 
+                econIPCA += (saldoExibicao * IPCA_MENSAL); 
+            } else { 
+                custoReal += (saldoExibicao * IPCA_MENSAL); 
+            }
+            // REDUÇÃO DO SALDO: Se pagou a parcela, subtrai o valor principal da dívida
+            saldoExibicao -= valorBaseOriginal;
+        } else if (amortizada) {
+            // REDUÇÃO DO SALDO: Se foi amortizada pelo pool, também subtrai do que você deve
+            saldoExibicao -= valorBaseOriginal;
+            custoReal = 0;
+        }
+
+        const tr = document.createElement('tr');
+        if (d.pago) tr.className = 'pago';
+        if (amortizada) tr.className = 'amortizada';
+
+        tr.innerHTML = `
+            <td>${i}</td>
+            <td>${vcto.toLocaleDateString('pt-BR')}</td>
+            <td>${fMoeda(valorBaseOriginal)}</td>
+            <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
+            <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
+            <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
+            <td>${fMoeda(custoReal)}</td>
+            <td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
+            <td><b>${fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao)}</b></td>
+        `;
+        corpo.appendChild(tr);
+    }
+
+    // 4. Atualizar os Cards de Resumo no Topo
+    document.getElementById('res-saldo').innerText = fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao);
+    document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
+    document.getElementById('res-amort').innerText = fMoeda(econAmort);
+    document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
+}
 
     carregarTudo();
 </script>
