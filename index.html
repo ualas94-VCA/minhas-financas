@@ -10,38 +10,58 @@
 <body>
 <div class="container">
     <header>
-        <h1>Finanças <span>H1a.17</span></h1>
+        <div style="display:flex; align-items:center; gap:20px">
+            <h1>Minhas <span>Finanças</span></h1>
+            <nav style="display:flex; gap:10px">
+                <button id="btn-lote" class="btn btn-primary" onclick="trocarAba('lote')">🏠 Loteamento</button>
+                <button id="btn-btc" class="btn" style="background:#f7931a; color:white; opacity:0.6" onclick="trocarAba('btc')">₿ Bitcoin</button>
+            </nav>
+        </div>
         <div style="display:flex; gap:10px">
             <button class="btn" style="background:#64748b; color:white" onclick="toggleDark()">🌓 Modo Dark</button>
-            <button class="btn" style="background:#1e293b; color:white" onclick="toggleConfig()">⚙️ Cronograma</button>
+            <button class="btn" style="background:#1e293b; color:white" onclick="toggleConfig()">⚙️</button>
         </div>
     </header>
 
-    <div id="configPanel" class="config-panel">
-        <h3 style="margin-top:0">Ajustar Valores Base (R$)</h3>
-        <div id="configRows"></div>
-        <div style="margin-top: 15px; display: flex; gap: 10px;">
-            <button class="btn" style="background:#64748b; color:white" onclick="adicionarLinhaConfig()">＋ Novo Intervalo</button>
-            <button class="btn" style="background:#10b981; color:white" onclick="salvarConfig()">💾 Salvar Cronograma</button>
+    <div id="aba-lote">
+        <div id="configPanel" class="config-panel">
+            <h3 style="margin-top:0">Ajustar Valores Base (R$)</h3>
+            <div id="configRows"></div>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button class="btn" style="background:#64748b; color:white" onclick="adicionarLinhaConfig()">＋ Novo Intervalo</button>
+                <button class="btn" style="background:#10b981; color:white" onclick="salvarConfig()">💾 Salvar Cronograma</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="card" style="border-top: 4px solid #3b82f6"><small>Dívida Lote</small><div id="res-saldo">R$ 0,00</div></div>
+            <div class="card" style="border-top: 4px solid #10b981"><small>Econ. IPCA</small><div id="res-ipca">R$ 0,00</div></div>
+            <div class="card" style="border-top: 4px solid #f59e0b"><small>Econ. Amort.</small><div id="res-amort">R$ 0,00</div></div>
+            <div class="card" style="border-top: 4px solid #1e293b"><small>Restantes</small><div id="res-rest">0</div></div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nº</th><th>Vencimento</th><th>Valor Base</th><th>Data Pagto</th><th>Amort. Extra</th><th>Pago?</th><th>Custo Real</th><th>Status</th><th>Saldo</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo"></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="stats">
-        <div class="card" style="border-top: 4px solid #3b82f6"><small>Dívida Lote</small><div id="res-saldo">R$ 0,00</div></div>
-        <div class="card" style="border-top: 4px solid #10b981"><small>Econ. IPCA</small><div id="res-ipca">R$ 0,00</div></div>
-        <div class="card" style="border-top: 4px solid #f59e0b"><small>Econ. Amort.</small><div id="res-amort">R$ 0,00</div></div>
-        <div class="card" style="border-top: 4px solid #1e293b"><small>Restantes</small><div id="res-rest">0</div></div>
-    </div>
-
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nº</th><th>Vencimento</th><th>Valor Base</th><th>Data Pagto</th><th>Amort. Extra</th><th>Pago?</th><th>Custo Real</th><th>Status</th><th>Saldo</th>
-                </tr>
-            </thead>
-            <tbody id="tabela-corpo"></tbody>
-        </table>
+    <div id="aba-btc" style="display:none">
+        <div class="stats">
+            <div class="card" style="border-top: 4px solid #f7931a"><small>Preço BTC (BRL)</small><div id="btc-preco">Carregando...</div></div>
+            <div class="card" style="border-top: 4px solid #f7931a"><small>Meu Saldo</small><div id="btc-meu-saldo">₿ 0,00</div></div>
+            <div class="card" style="border-top: 4px solid #f7931a"><small>Total em Reais</small><div id="btc-total-brl">R$ 0,00</div></div>
+        </div>
+        <div class="card" style="padding:40px">
+            <h3>Em breve: Gestão de Carteira Bitcoin</h3>
+            <p>Aqui vamos listar suas compras e calcular o seu preço médio.</p>
+        </div>
     </div>
 </div>
 
@@ -141,94 +161,90 @@
     }
 
    function renderizar() {
-    const corpo = document.getElementById('tabela-corpo');
-    corpo.innerHTML = '';
-    
-    // O saldo agora começa com o valor principal e diminui com pagamentos
-    let saldoExibicao = SALDO_INICIAL; 
-    let econIPCA = 0; 
-    let econAmort = 0; 
-    let pagas = 0;
-    let poolAmort = [];
+        const corpo = document.getElementById('tabela-corpo');
+        corpo.innerHTML = '';
+        let saldoExibicao = SALDO_INICIAL; 
+        let econIPCA = 0; 
+        let econAmort = 0; 
+        let pagas = 0;
+        let poolAmort = [];
 
-    // 1. Identificar pagamentos e coletar valores para o pool de amortização
-    for (let i = 1; i <= 180; i++) {
-        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
-        if (d.pago) { 
-            pagas++; 
-            if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); 
-        }
-    }
-
-    // 2. Lógica de Abatimento Automático (Amortização do final para o início)
-    let quitadasFim = [];
-    poolAmort.forEach(item => {
-        let sobra = item.valor;
-        for (let j = 180; j >= 1; j--) {
-            let custoJ = getValorBase(j);
-            // Se a parcela não está paga nem amortizada, e há saldo extra para quitar o valor base dela
-            if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
-                econAmort += custoJ;
-                quitadasFim[j] = { por: item.origem };
-                sobra -= custoJ;
+        // 1. Identificar pagamentos e coletar valores para o pool de amortização
+        for (let i = 1; i <= 180; i++) {
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
+            if (d.pago) { 
+                pagas++; 
+                if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); 
             }
         }
-    });
 
-    // 3. Gerar as 180 linhas e calcular o Saldo Devedor Atual
-    for (let i = 1; i <= 180; i++) {
-        const vcto = new Date(DATA_BASE); 
-        vcto.setMonth(vcto.getMonth() + (i-1));
-        
-        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
-        let amortizada = quitadasFim[i];
-        let valorBaseOriginal = getValorBase(i);
-        
-        // Cálculo de Juros/IPCA (apenas informativo para custo real)
-        let jurosExibicao = (i >= 16 && !amortizada && !d.pago) ? saldoExibicao * IPCA_MENSAL : 0;
-        let custoReal = valorBaseOriginal;
-        
-        if (d.pago) {
-            let dp = new Date(d.data + "T00:00:00");
-            if (dp <= vcto || i < 16) { 
-                econIPCA += (saldoExibicao * IPCA_MENSAL); 
-            } else { 
-                custoReal += (saldoExibicao * IPCA_MENSAL); 
+        // 2. Lógica de Abatimento Automático (Amortização do final para o início)
+        let quitadasFim = [];
+        poolAmort.forEach(item => {
+            let sobra = item.valor;
+            for (let j = 180; j >= 1; j--) {
+                let custoJ = getValorBase(j);
+                if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
+                    econAmort += custoJ;
+                    quitadasFim[j] = { por: item.origem };
+                    sobra -= custoJ;
+                }
             }
-            // REDUÇÃO DO SALDO: Se pagou a parcela, subtrai o valor principal da dívida
-            saldoExibicao -= valorBaseOriginal;
-        } else if (amortizada) {
-            // REDUÇÃO DO SALDO: Se foi amortizada pelo pool, também subtrai do que você deve
-            saldoExibicao -= valorBaseOriginal;
-            custoReal = 0;
+        });
+
+        // 3. Gerar as 180 linhas com a Regra de Desconto de 10%
+        for (let i = 1; i <= 180; i++) {
+            const vcto = new Date(DATA_BASE); 
+            vcto.setMonth(vcto.getMonth() + (i-1));
+            
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false };
+            let amortizada = quitadasFim[i];
+            
+            let valorBaseOriginal = getValorBase(i);
+            let valorComDesconto = valorBaseOriginal * 0.90; // Regra de pontualidade
+            let custoReal = valorBaseOriginal;
+
+            if (d.pago) {
+                let dp = new Date(d.data + "T00:00:00");
+                
+                // Se pagou em dia (ou parcelas fixas 1-15), aplica 10% de desconto
+                if (dp <= vcto || i < 16) { 
+                    custoReal = valorComDesconto;
+                    econIPCA += (saldoExibicao * IPCA_MENSAL); 
+                } else { 
+                    custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
+                }
+                // Abate o valor principal da dívida
+                saldoExibicao -= valorBaseOriginal;
+            } else if (amortizada) {
+                saldoExibicao -= valorBaseOriginal;
+                custoReal = 0;
+            }
+
+            const tr = document.createElement('tr');
+            if (d.pago) tr.className = 'pago';
+            if (amortizada) tr.className = 'amortizada';
+
+            tr.innerHTML = `
+                <td>${i}</td>
+                <td>${vcto.toLocaleDateString('pt-BR')}</td>
+                <td>${fMoeda(valorBaseOriginal)}</td>
+                <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
+                <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
+                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
+                <td>${fMoeda(custoReal)}</td>
+                <td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
+                <td><b>${fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao)}</b></td>
+            `;
+            corpo.appendChild(tr);
         }
 
-        const tr = document.createElement('tr');
-        if (d.pago) tr.className = 'pago';
-        if (amortizada) tr.className = 'amortizada';
-
-        tr.innerHTML = `
-            <td>${i}</td>
-            <td>${vcto.toLocaleDateString('pt-BR')}</td>
-            <td>${fMoeda(valorBaseOriginal)}</td>
-            <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
-            <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
-            <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
-            <td>${fMoeda(custoReal)}</td>
-            <td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
-            <td><b>${fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao)}</b></td>
-        `;
-        corpo.appendChild(tr);
+        // 4. Atualizar os Cards de Resumo
+        document.getElementById('res-saldo').innerText = fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao);
+        document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
+        document.getElementById('res-amort').innerText = fMoeda(econAmort);
+        document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
     }
-
-    // 4. Atualizar os Cards de Resumo no Topo
-    document.getElementById('res-saldo').innerText = fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao);
-    document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
-    document.getElementById('res-amort').innerText = fMoeda(econAmort);
-    document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
-}
-
-    carregarTudo();
 </script>
 </body>
 </html>
