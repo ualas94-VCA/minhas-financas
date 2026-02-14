@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Finanças v4.0</title>
+    <title>Minhas Finanças v4.1</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -58,9 +58,9 @@
             <div class="card" style="border-top: 4px solid #f7931a"><small>Meu Saldo</small><div id="btc-meu-saldo">₿ 0,00</div></div>
             <div class="card" style="border-top: 4px solid #f7931a"><small>Total em Reais</small><div id="btc-total-brl">R$ 0,00</div></div>
         </div>
-        <div class="card" style="padding:40px">
+        <div class="card" style="padding:20px">
             <h3>Gestão de Carteira Bitcoin</h3>
-            <p>Em breve: registro de compras e cálculo de preço médio.</p>
+            <p>A cotação acima é atualizada em tempo real via API.</p>
         </div>
     </div>
 </div>
@@ -92,7 +92,7 @@
         return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // --- CONFIGURAÇÃO ---
+    // --- LOGICA DE CONFIG ---
     function renderizarConfig() {
         const container = document.getElementById('configRows');
         container.innerHTML = configParcelas.map((c, idx) => `
@@ -136,14 +136,19 @@
         return c ? parseFloat(c.valor_base) : 1315.16;
     }
 
-    // --- PARCELAS E RENDERIZAÇÃO ---
+    // --- LOGICA DE PARCELAS ---
     async function salvarParcela(i) {
         const d = document.getElementById(`date_${i}`).value;
         const a = parseMoeda(document.getElementById(`amort_${i}`).value);
         const p = document.getElementById(`check_${i}`).checked;
         const desc = document.getElementById(`desc_${i}`).checked;
+
+        // Atualização Otimista (Local)
+        dadosNuvem[`p_${i}`] = { data: d, amort: a, pago: p, desconto: desc };
+        renderizar();
+
+        // Envio para Nuvem
         await supabaseClient.from('parcelas_lote').upsert({ id: i, data_pagto: d, amort_extra: a, pago: p, desconto: desc });
-        carregarTudo();
     }
 
     function renderizar() {
