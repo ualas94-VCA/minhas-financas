@@ -181,16 +181,17 @@
             let custoReal = valorBaseOriginal;
 
             if (d.pago) {
-                if (d.desconto === true || i < 16) { 
-                    custoReal = valorBaseOriginal * 0.90;
-                    econIPCA += (saldoExibicao * IPCA_MENSAL); 
-                } else { 
-                    custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
-                }
-                saldoExibicao -= valorBaseOriginal;
-            } else if (amortizada) {
-                saldoExibicao -= valorBaseOriginal; custoReal = 0;
+            // REGRA CORRIGIDA: Desconto APENAS se o checkbox 'desconto' estiver marcado
+            // Removemos a parte que dava desconto automático para as parcelas 1-15
+            if (d.desconto === true) { 
+                custoReal = valorBaseOriginal * 0.90; // Aplica 10%
+                econIPCA += (saldoExibicao * IPCA_MENSAL); 
+            } else { 
+                // Sem desconto: valor base + juros do mês
+                custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
             }
+            saldoExibicao -= valorBaseOriginal;
+        }
 
             const tr = document.createElement('tr');
             if (d.pago) tr.className = 'pago';
