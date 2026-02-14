@@ -181,17 +181,20 @@
             let custoReal = valorBaseOriginal;
 
             if (d.pago) {
-            // REGRA CORRIGIDA: Desconto APENAS se o checkbox 'desconto' estiver marcado
-            // Removemos a parte que dava desconto automático para as parcelas 1-15
-            if (d.desconto === true) { 
-                custoReal = valorBaseOriginal * 0.90; // Aplica 10%
-                econIPCA += (saldoExibicao * IPCA_MENSAL); 
-            } else { 
-                // Sem desconto: valor base + juros do mês
-                custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
+                // REGRA MANUAL: Desconto de 10% apenas se o checkbox estiver marcado
+                if (d.desconto === true) { 
+                    custoReal = valorBaseOriginal * 0.90; 
+                    // Mantemos a soma da economia para o Card Verde, pois você "escapou" do juro que o lote cobraria
+                    econIPCA += (saldoExibicao * IPCA_MENSAL); 
+                } else { 
+                    // VALOR FIXO: Exibe o valor base exatamente como definido na configuração
+                    custoReal = valorBaseOriginal; 
+                }
+                saldoExibicao -= valorBaseOriginal;
+            } else if (amortizada) {
+                saldoExibicao -= valorBaseOriginal;
+                custoReal = 0;
             }
-            saldoExibicao -= valorBaseOriginal;
-        }
 
             const tr = document.createElement('tr');
             if (d.pago) tr.className = 'pago';
