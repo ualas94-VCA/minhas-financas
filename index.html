@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanças Pro - v3.5 Dark Mode</title>
+    <title>Minhas Finanças v4.0</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -59,8 +59,8 @@
             <div class="card" style="border-top: 4px solid #f7931a"><small>Total em Reais</small><div id="btc-total-brl">R$ 0,00</div></div>
         </div>
         <div class="card" style="padding:40px">
-            <h3>Em breve: Gestão de Carteira Bitcoin</h3>
-            <p>Aqui vamos listar suas compras e calcular o seu preço médio.</p>
+            <h3>Gestão de Carteira Bitcoin</h3>
+            <p>Em breve: registro de compras e cálculo de preço médio.</p>
         </div>
     </div>
 </div>
@@ -82,32 +82,17 @@
     }
 
     function fMoeda(v) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-    
     function parseMoeda(v) {
         if (!v || v === "") return 0;
         let limpo = v.toString().replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
         return parseFloat(limpo) || 0;
     }
 
-    // 2. Busca os pagamentos e amortizações
-        const { data: p } = await supabaseClient.from('parcelas_lote').select('*');
-        if (p) {
-            dadosNuvem = {}; 
-            p.forEach(item => { 
-                dadosNuvem[`p_${item.id}`] = { 
-                    data: item.data_pagto, 
-                    amort: item.amort_extra, 
-                    pago: item.pago,
-                    desconto: item.desconto // <--- ESTA É A PARTE 2 QUE FALTAVA!
-                }; 
-            });
-            renderizar(); 
-        }
-
     function formatarParaInput(valor) {
         return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    // --- CONFIGURAÇÃO ---
     function renderizarConfig() {
         const container = document.getElementById('configRows');
         container.innerHTML = configParcelas.map((c, idx) => `
@@ -120,12 +105,8 @@
     }
 
     function updateConfig(i, f, v) { 
-        // Se for o campo de valor, usa o parseMoeda para entender a vírgula brasileira
-        if (f === 'valor_base') {
-            configParcelas[i][f] = parseMoeda(v);
-        } else {
-            configParcelas[i][f] = parseInt(v); 
-        }
+        if (f === 'valor_base') configParcelas[i][f] = parseMoeda(v);
+        else configParcelas[i][f] = parseInt(v); 
     }
 
     function adicionarLinhaConfig() {
@@ -138,8 +119,7 @@
         if(confirm("Remover este intervalo?")) {
             if (configParcelas[idx].id) await supabaseClient.from('config_parcelas').delete().eq('id', configParcelas[idx].id);
             configParcelas.splice(idx, 1);
-            renderizarConfig();
-            renderizar();
+            renderizarConfig(); renderizar();
         }
     }
 
@@ -148,8 +128,7 @@
             const obj = { de_parcela: item.de_parcela, ate_parcela: item.ate_parcela, valor_base: item.valor_base };
             item.id ? await supabaseClient.from('config_parcelas').update(obj).eq('id', item.id) : await supabaseClient.from('config_parcelas').insert(obj);
         }
-        alert("Configurações salvas!");
-        carregarTudo();
+        alert("Configurações salvas!"); carregarTudo();
     }
 
     function getValorBase(n) {
@@ -157,127 +136,104 @@
         return c ? parseFloat(c.valor_base) : 1315.16;
     }
 
+    // --- PARCELAS E RENDERIZAÇÃO ---
     async function salvarParcela(i) {
-    const d = document.getElementById(`date_${i}`).value;
-    const a = parseMoeda(document.getElementById(`amort_${i}`).value);
-    const p = document.getElementById(`check_${i}`).checked;
-    const desc = document.getElementById(`desc_${i}`).checked; // Nova caixa
-    await supabaseClient.from('parcelas_lote').upsert({ id: i, data_pagto: d, amort_extra: a, pago: p, desconto: desc });
-    carregarTudo();
-}   
-
-   function renderizar() {
-    const corpo = document.getElementById('tabela-corpo');
-    corpo.innerHTML = '';
-    let saldoExibicao = SALDO_INICIAL; let econIPCA = 0; let econAmort = 0; let pagas = 0;
-    let poolAmort = [];
-
-    // 1. Coletar dados para Amortização
-    for (let i = 1; i <= 180; i++) {
-        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false, desconto: false };
-        if (d.pago) { 
-            pagas++; 
-            if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); 
-        }
+        const d = document.getElementById(`date_${i}`).value;
+        const a = parseMoeda(document.getElementById(`amort_${i}`).value);
+        const p = document.getElementById(`check_${i}`).checked;
+        const desc = document.getElementById(`desc_${i}`).checked;
+        await supabaseClient.from('parcelas_lote').upsert({ id: i, data_pagto: d, amort_extra: a, pago: p, desconto: desc });
+        carregarTudo();
     }
 
-    // 2. Lógica de Amortização (Final para o início)
-    let quitadasFim = [];
-    poolAmort.forEach(item => {
-        let sobra = item.valor;
-        for (let j = 180; j >= 1; j--) {
-            let custoJ = getValorBase(j);
-            if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
-                econAmort += custoJ; quitadasFim[j] = { por: item.origem }; sobra -= custoJ;
-            }
-        }
-    });
+    function renderizar() {
+        const corpo = document.getElementById('tabela-corpo');
+        corpo.innerHTML = '';
+        let saldoExibicao = SALDO_INICIAL; let econIPCA = 0; let econAmort = 0; let pagas = 0;
+        let poolAmort = [];
 
-    // 3. Gerar Tabela com Checkbox de Desconto Manual
-    for (let i = 1; i <= 180; i++) {
-        const vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
-        let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false, desconto: false };
-        let amortizada = quitadasFim[i];
-        let valorBaseOriginal = getValorBase(i);
-        let custoReal = valorBaseOriginal;
-
-        if (d.pago) {
-            // REGRA CIRÚRGICA: Se marcou o checkbox 'desconto', aplica 10%
-            if (d.desconto === true || i < 16) { 
-                custoReal = valorBaseOriginal * 0.90;
-                econIPCA += (saldoExibicao * IPCA_MENSAL); 
-            } else { 
-                custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
-            }
-            saldoExibicao -= valorBaseOriginal;
-        } else if (amortizada) {
-            saldoExibicao -= valorBaseOriginal;
-            custoReal = 0;
+        for (let i = 1; i <= 180; i++) {
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false, desconto: false };
+            if (d.pago) { pagas++; if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); }
         }
 
-        const tr = document.createElement('tr');
-        if (d.pago) tr.className = 'pago';
-        if (amortizada) tr.className = 'amortizada';
+        let quitadasFim = [];
+        poolAmort.forEach(item => {
+            let sobra = item.valor;
+            for (let j = 180; j >= 1; j--) {
+                let custoJ = getValorBase(j);
+                if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
+                    econAmort += custoJ; quitadasFim[j] = { por: item.origem }; sobra -= custoJ;
+                }
+            }
+        });
 
-        tr.innerHTML = `
-            <td>${i}</td>
-            <td>${vcto.toLocaleDateString('pt-BR')}</td>
-            <td>${fMoeda(valorBaseOriginal)}</td>
-            <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
-            <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
-            <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
-            <td><input type="checkbox" id="desc_${i}" ${d.desconto ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
-            <td>${fMoeda(custoReal)}</td>
-            <td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
-            <td><b>${fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao)}</b></td>
-        `;
-        corpo.appendChild(tr);
+        for (let i = 1; i <= 180; i++) {
+            const vcto = new Date(DATA_BASE); vcto.setMonth(vcto.getMonth() + (i-1));
+            let d = dadosNuvem[`p_${i}`] || { data: "", amort: 0, pago: false, desconto: false };
+            let amortizada = quitadasFim[i];
+            let valorBaseOriginal = getValorBase(i);
+            let custoReal = valorBaseOriginal;
+
+            if (d.pago) {
+                if (d.desconto === true || i < 16) { 
+                    custoReal = valorBaseOriginal * 0.90;
+                    econIPCA += (saldoExibicao * IPCA_MENSAL); 
+                } else { 
+                    custoReal = valorBaseOriginal + (saldoExibicao * IPCA_MENSAL); 
+                }
+                saldoExibicao -= valorBaseOriginal;
+            } else if (amortizada) {
+                saldoExibicao -= valorBaseOriginal; custoReal = 0;
+            }
+
+            const tr = document.createElement('tr');
+            if (d.pago) tr.className = 'pago';
+            if (amortizada) tr.className = 'amortizada';
+
+            tr.innerHTML = `
+                <td>${i}</td><td>${vcto.toLocaleDateString('pt-BR')}</td><td>${fMoeda(valorBaseOriginal)}</td>
+                <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
+                <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
+                <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
+                <td><input type="checkbox" id="desc_${i}" ${d.desconto ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
+                <td>${fMoeda(custoReal)}</td><td>${amortizada ? 'AMORT. P'+amortizada.por : (d.pago ? 'PAGO' : '-')}</td>
+                <td><b>${fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao)}</b></td>
+            `;
+            corpo.appendChild(tr);
+        }
+
+        document.getElementById('res-saldo').innerText = fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao);
+        document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
+        document.getElementById('res-amort').innerText = fMoeda(econAmort);
+        document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
     }
 
-    document.getElementById('res-saldo').innerText = fMoeda(saldoExibicao < 0 ? 0 : saldoExibicao);
-    document.getElementById('res-ipca').innerText = fMoeda(econIPCA);
-    document.getElementById('res-amort').innerText = fMoeda(econAmort);
-    document.getElementById('res-rest').innerText = 180 - pagas - Object.keys(quitadasFim).length;
-}
+    // --- CARREGAMENTO E ABAS ---
     async function carregarTudo() {
-        // 1. Busca as configurações de valores base do Supabase
         const { data: cfg } = await supabaseClient.from('config_parcelas').select('*').order('de_parcela');
-        if (cfg) { 
-            configParcelas = cfg; 
-            renderizarConfig(); 
-        }
+        if (cfg) { configParcelas = cfg; renderizarConfig(); }
         
-        // 2. Busca os pagamentos e amortizações salvos
         const { data: p } = await supabaseClient.from('parcelas_lote').select('*');
         if (p) {
             dadosNuvem = {}; 
             p.forEach(item => { 
                 dadosNuvem[`p_${item.id}`] = { 
-                    data: item.data_pagto, 
-                    amort: item.amort_extra, 
-                    pago: item.pago,
-                    desconto: item.desconto // Garante que o checkbox "Antecipada" seja lembrado
+                    data: item.data_pagto, amort: item.amort_extra, pago: item.pago, desconto: item.desconto 
                 }; 
             });
-            renderizar(); // Desenha a tabela com os dados atualizados
+            renderizar();
         }
     }
 
-    // Função para buscar preço do Bitcoin em tempo real (Fase 3 do Roadmap)
     async function buscarPrecoBTC() {
         try {
             const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl');
             const data = await res.json();
-            const preco = data.bitcoin.brl;
-            document.getElementById('btc-preco').innerText = fMoeda(preco);
-            // Salve o preço para cálculos futuros se necessário
-            window.btcPrecoAtual = preco;
-        } catch (e) {
-            document.getElementById('btc-preco').innerText = "Erro na API";
-        }
+            document.getElementById('btc-preco').innerText = fMoeda(data.bitcoin.brl);
+        } catch (e) { document.getElementById('btc-preco').innerText = "Erro na API"; }
     }
 
-    // Função para trocar entre as abas Loteamento e Bitcoin
     function trocarAba(aba) {
         const aLote = document.getElementById('aba-lote');
         const aBtc = document.getElementById('aba-btc');
@@ -290,11 +246,10 @@
         } else {
             aLote.style.display = 'none'; aBtc.style.display = 'block';
             bLote.classList.remove('btn-primary'); bBtc.style.opacity = '1';
-            buscarPrecoBTC(); // Atualiza o preço toda vez que abrir a aba
+            buscarPrecoBTC();
         }
     }
 
-    // Inicialização do sistema ao abrir a página
     carregarTudo();
 </script>
 </body>
