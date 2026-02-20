@@ -162,13 +162,26 @@
             if (d.pago) { pagas++; if (d.amort > 0) poolAmort.push({ valor: d.amort, origem: i }); }
         }
 
+       // --- BLOCO 2: Lógica de Amortização (Valor Presente Real) ---
         let quitadasFim = [];
+        
+        // Ordena para garantir que a primeira amortização feita seja a primeira a ser calculada
+        poolAmort.sort((a, b) => a.origem - b.origem);
+
         poolAmort.forEach(item => {
             let sobra = item.valor;
+            // O "preço" de cada parcela para quitação é o valor da parcela atual (onde você pagou)
+            let custoValorPresente = getValorBase(item.origem); 
+
+            // Tenta quitar as parcelas de trás para frente (da 180 para a 1)
             for (let j = 180; j >= 1; j--) {
-                let custoJ = getValorBase(j);
-                if (!quitadasFim[j] && !dadosNuvem[`p_${j}`]?.pago && sobra >= custoJ) {
-                    econAmort += custoJ; quitadasFim[j] = { por: item.origem }; sobra -= custoJ;
+                let jaPaga = dadosNuvem[`p_${j}`]?.pago;
+                
+                // Só quita se: não estiver paga, não tiver sido amortizada e se o dinheiro der
+                if (!jaPaga && !quitadasFim[j] && sobra >= custoValorPresente) {
+                    econAmort += getValorBase(j); // A economia é o valor que ela teria no futuro
+                    quitadasFim[j] = { por: item.origem }; // Marca quem quitou
+                    sobra -= custoValorPresente; // Deduz o valor presente do seu saldo extra
                 }
             }
         });
