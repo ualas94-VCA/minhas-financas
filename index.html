@@ -40,7 +40,19 @@
             <div class="card" style="border-top: 4px solid #1e293b"><small>Restantes</small><div id="res-rest">0</div></div>
         </div>
 
-        <div class="table-wrapper">
+        <div id="aba-lote">
+    
+    <div class="stats"> ... </div>
+
+    <div style="padding: 0 10px;">
+        <button class="btn" 
+                style="background: #10b981; color: white; width: 100%; margin-bottom: 15px; font-weight: bold; height: 50px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" 
+                onclick="carregarTudo()">
+            🔄 Verificar se foi Salvo (Sincronizar)
+        </button>
+    </div>
+
+          <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
@@ -138,7 +150,8 @@
 
     // --- LOGICA DE PARCELAS ---
     async function salvarParcela(i) {
-        const d = document.getElementById(`date_${i}`).value;
+        const dataDigitada = document.getElementById(`date_${i}`).value;
+        const d = converterParaISO(dataDigitada);
         const a = parseMoeda(document.getElementById(`amort_${i}`).value);
         const p = document.getElementById(`check_${i}`).checked;
         const desc = document.getElementById(`desc_${i}`).checked;
@@ -215,7 +228,14 @@
 
             tr.innerHTML = `
                 <td>${i}</td><td>${vcto.toLocaleDateString('pt-BR')}</td><td>${fMoeda(valorBaseOriginal)}</td>
-                <td><input type="date" id="date_${i}" value="${d.data}" onchange="salvarParcela(${i})"></td>
+                <td><input type="text" 
+           id="date_${i}" 
+           value="${d.data ? formatarDataParaBR(d.data) : ''}" 
+           placeholder="dd/mm/aaaa" 
+           inputmode="numeric"
+           maxlength="10"
+           oninput="mascaraData(this)"
+           onblur="salvarParcela(${i})"></td>
                 <td><input type="text" class="money" id="amort_${i}" value="${d.amort.toLocaleString('pt-BR',{minimumFractionDigits:2})}" onblur="salvarParcela(${i})"></td>
                 <td><input type="checkbox" id="check_${i}" ${d.pago ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
                 <td><input type="checkbox" id="desc_${i}" ${d.desconto ? 'checked' : ''} onchange="salvarParcela(${i})"></td>
@@ -271,6 +291,27 @@
             buscarPrecoBTC();
         }
     }
+    // Coloca as barras automaticamente enquanto você digita
+function mascaraData(input) {
+    let v = input.value.replace(/\D/g, '').slice(0, 8);
+    if (v.length >= 5) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+    else if (v.length >= 3) v = `${v.slice(0, 2)}/${v.slice(2)}`;
+    input.value = v;
+}
+
+// Converte dd/mm/aaaa para aaaa-mm-dd (formato que o banco de dados entende)
+function converterParaISO(dataBR) {
+    if (!dataBR || dataBR.length < 10) return "";
+    const [d, m, a] = dataBR.split('/');
+    return `${a}-${m}-${d}`;
+}
+
+// Converte aaaa-mm-dd para dd/mm/aaaa (para exibir na tela)
+function formatarDataParaBR(dataISO) {
+    if (!dataISO) return "";
+    const [a, m, d] = dataISO.split('-');
+    return `${d}/${m}/${a}`;
+}
 
     carregarTudo();
 </script>
