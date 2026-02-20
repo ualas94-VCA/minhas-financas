@@ -184,7 +184,7 @@
         poolAmort.forEach(item => {
             let sobra = item.valor;
             // O "preço" de cada parcela para quitação é o valor da parcela atual (onde você pagou)
-            let custoValorPresente = getValorBase(item.origem); 
+            let custoValorPresente = getValorBase(item.origem) * 0.90; // Aplica 10% de desconto na amortização 
 
             // Tenta quitar as parcelas de trás para frente (da 180 para a 1)
             for (let j = 180; j >= 1; j--) {
