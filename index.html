@@ -24,8 +24,8 @@
     </header>
 
     <div id="aba-lote">
-        <div id="configPanel" class="config-panel">
-            <h3 style="margin-top:0">Ajustar Valores Base (R$)</h3>
+        <div id="configPanel" class="config-panel" style="display:none">
+                <h3 style="margin-top:0">Ajustar Valores Base (R$)</h3>
             <div id="configRows"></div>
             <div style="margin-top: 15px; display: flex; gap: 10px;">
                 <button class="btn" style="background:#64748b; color:white" onclick="adicionarLinhaConfig()">＋ Novo Intervalo</button>
@@ -40,10 +40,7 @@
             <div class="card" style="border-top: 4px solid #1e293b"><small>Restantes</small><div id="res-rest">0</div></div>
         </div>
 
-        <div id="aba-lote">
     
-    <div class="stats"> ... </div>
-
     <div style="padding: 0 10px;">
         <button class="btn" 
                 style="background: #10b981; color: white; width: 100%; margin-bottom: 15px; font-weight: bold; height: 50px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" 
@@ -207,19 +204,21 @@
             let custoReal = valorBaseOriginal;
 
             if (d.pago) {
-                // REGRA MANUAL: Desconto de 10% apenas se o checkbox estiver marcado
+                // REGRA PARA PARCELA MENSAL
                 if (d.desconto === true) { 
                     custoReal = valorBaseOriginal * 0.90; 
-                    // Mantemos a soma da economia para o Card Verde, pois você "escapou" do juro que o lote cobraria
+                    // Soma economia de IPCA apenas na antecipação mensal
                     econIPCA += (saldoExibicao * IPCA_MENSAL); 
                 } else { 
-                    // VALOR FIXO: Exibe o valor base exatamente como definido na configuração
                     custoReal = valorBaseOriginal; 
                 }
                 saldoExibicao -= valorBaseOriginal;
+
             } else if (amortizada) {
+                // REGRA PARA AMORTIZAÇÃO (FIM DO LOTE)
                 saldoExibicao -= valorBaseOriginal;
                 custoReal = 0;
+                // Não mexe na econIPCA aqui para não inflar o card verde
             }
 
             const tr = document.createElement('tr');
